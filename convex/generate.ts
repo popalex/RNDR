@@ -1,6 +1,7 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
 
 // ---------------------------------------------------------------------------
 // Internal fal.ai REST client
@@ -130,7 +131,11 @@ export const generateImages = action({
     /** Pass-through options forwarded verbatim to the provider */
     providerOptions: v.optional(v.any()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{
+    generationId: Id<"generations">;
+    images: Array<{ url: string; width: number; height: number; seed?: number }>;
+    durationMs: number;
+  }> => {
     if (args.provider !== "fal") {
       throw new Error(
         `Provider "${args.provider}" is not yet supported by the Convex action. ` +
@@ -141,7 +146,7 @@ export const generateImages = action({
     const startMs = Date.now();
 
     // 1. Persist a "pending" generation row (userId comes from the verified JWT)
-    const generationId = await ctx.runMutation(api.generations.create, {
+    const generationId: Id<"generations"> = await ctx.runMutation(api.generations.create, {
       prompt: args.prompt,
       negativePrompt: args.negativePrompt,
       model: args.model,
