@@ -5,13 +5,17 @@ import { v } from "convex/values";
 // Queries
 // ---------------------------------------------------------------------------
 
-/** Look up a user profile by their external auth ID. */
-export const getByUserId = query({
-  args: { userId: v.string() },
-  handler: async (ctx, { userId }) => {
+/** Look up the current user's profile. Returns null if not signed in. */
+export const getCurrent = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
     return ctx.db
       .query("users")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user", (q) =>
+        q.eq("userId", identity.tokenIdentifier)
+      )
       .unique();
   },
 });
@@ -20,21 +24,30 @@ export const getByUserId = query({
 // Mutations
 // ---------------------------------------------------------------------------
 
-/** Upsert user profile – call this on every sign-in. */
-export const upsert = mutation({
+/**
+ * Upsert user profile — call this on every sign-in.
+ * The userId is read from the verified JWT; fields that are not provided are
+ * left unchanged on existing profiles (no accidental data clearing).
+ */
+export const upsertCurrent = mutation({
   args: {
-    userId: v.string(),
     email: v.optional(v.string()),
     displayName: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthenticated");
+
+    const userId = identity.tokenIdentifier;
+
     const existing = await ctx.db
       .query("users")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .unique();
 
     if (existing) {
+      // Only patch fields that were explicitly provided
       const patch: Record<string, string | undefined> = {};
       if (args.email !== undefined) patch.email = args.email;
       if (args.displayName !== undefined) patch.displayName = args.displayName;
@@ -45,27 +58,32 @@ export const upsert = mutation({
       return existing._id;
     }
 
-    return ctx.db.insert("users", args);
+    return ctx.db.insert("users", { userId, ...args });
   },
 });
 
-/** Update a user's default generation preferences. */
+/** Update the current user's default generation preferences. */
 export const updatePreferences = mutation({
   args: {
-    userId: v.string(),
     preferences: v.object({
       defaultModel: v.optional(v.string()),
       defaultProvider: v.optional(v.string()),
       defaultNumImages: v.optional(v.number()),
     }),
   },
-  handler: async (ctx, { userId, preferences }) => {
+  handler: async (ctx, { preferences }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthenticated");
+
     const user = await ctx.db
       .query("users")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user", (q) =>
+        q.eq("userId", identity.tokenIdentifier)
+      )
       .unique();
 
     if (!user) throw new Error("User not found");
     await ctx.db.patch(user._id, { preferences });
   },
 });
+

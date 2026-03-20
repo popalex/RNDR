@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { UserButton } from "@clerk/nextjs";
 import { ImageIcon, GalleryHorizontalEnd, Settings, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +46,20 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      {/* User account */}
+      <div className="px-4 py-4 border-t border-zinc-800 flex items-center gap-3">
+        <UserButton
+          appearance={{
+            elements: {
+              avatarBox: "w-8 h-8",
+            },
+          }}
+        />
+        <span className="hidden md:block text-sm text-zinc-400 truncate">
+          My account
+        </span>
+      </div>
     </aside>
   );
 }

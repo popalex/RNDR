@@ -43,11 +43,12 @@
 | Decision | Rationale |
 |---|---|
 | **Monorepo (Turborepo)** | Shared types, co-located tooling, single `npm install` |
-| **Convex** | Real-time subscriptions, no REST boilerplate, built-in auth hooks |
+| **Clerk** | Production-ready auth with social logins, MFA, user management UI out of the box |
+| **Convex** | Real-time subscriptions, no REST boilerplate, built-in Clerk JWT verification |
 | **Separate AI service (Docker)** | Isolate heavy AI deps; swap/add providers without touching the web app |
 | **Provider abstraction** | Adding a new model provider = one new file + one import |
 | **Vercel AI SDK** | Unified API across providers, built-in streaming support |
-| **Next.js API proxy** | Keeps `AI_SERVICE_SECRET` and `FAL_KEY` server-side |
+| **Next.js API proxy** | Keeps `AI_SERVICE_SECRET` and `FAL_KEY` server-side only |
 
 ---
 
@@ -113,6 +114,7 @@ rndr/
 - Node.js ≥ 20
 - npm ≥ 10
 - [Convex account](https://dashboard.convex.dev)
+- [Clerk account](https://clerk.com) — create an application and grab the API keys
 - [fal.ai API key](https://fal.ai/dashboard/keys)
 - Docker (optional – only needed to run the AI service in a container)
 
@@ -126,14 +128,30 @@ npm install
 
 ```bash
 cp .env.example .env.local
-# Edit .env.local and fill in NEXT_PUBLIC_CONVEX_URL, FAL_KEY, etc.
+# Fill in:
+#   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+#   CLERK_SECRET_KEY
+#   NEXT_PUBLIC_CONVEX_URL  (get this after step 3)
+#   FAL_KEY
+#   AI_SERVICE_SECRET
 ```
 
-### 3. Set up Convex
+### 3. Set up Convex + Clerk JWT
 
 ```bash
-npx convex dev          # starts the Convex dev server and generates types
+npx convex dev   # creates the project, generates types, starts the dev server
 ```
+
+In a second terminal, set the Clerk JWT issuer so Convex can verify tokens:
+
+```bash
+# Replace with your actual Clerk Frontend API URL (found in Clerk dashboard)
+npx convex env set CLERK_JWT_ISSUER_DOMAIN https://<your-subdomain>.clerk.accounts.dev
+```
+
+> **Clerk JWT Template** – in the Clerk dashboard go to  
+> *Configure → JWT Templates → New template → Convex* and save it.  
+> This makes Clerk embed the subject claim Convex expects.
 
 ### 4. Run the AI service
 
@@ -196,7 +214,7 @@ That's it – no other files need to change.
 
 ## Roadmap
 
-- [ ] Clerk authentication integration
+- [x] Clerk authentication integration
 - [ ] Image-to-image / inpainting
 - [ ] Streaming generation progress via SSE
 - [ ] OpenAI DALL-E 3 provider

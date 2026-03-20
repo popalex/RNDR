@@ -5,12 +5,10 @@ import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import { api } from "@convex/_generated/api";
 
-/** Shows all completed generations for the current session/user. */
+/** Shows all completed generations for the currently signed-in user. */
 export function GalleryGrid() {
-  // For now we pass a placeholder userId; replace with real auth identity.
-  const generations = useQuery(api.generations.listByUser, {
-    userId: "anonymous",
-  });
+  // listByUser reads the caller's identity server-side — no args needed.
+  const generations = useQuery(api.generations.listByUser);
 
   if (generations === undefined) {
     return (

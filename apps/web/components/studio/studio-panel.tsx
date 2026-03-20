@@ -26,10 +26,9 @@ export function StudioPanel() {
     setIsGenerating(true);
     setImages([]);
 
-    // 1. Create a "pending" generation in Convex for real-time tracking
-    // TODO: replace "anonymous" with the real authenticated user ID
+    // 1. Create a "pending" generation in Convex.
+    //    userId is set server-side by reading ctx.auth.getUserIdentity().
     const generationId = await createGeneration({
-      userId: "anonymous",
       prompt,
       negativePrompt,
       model: selectedModel.id,

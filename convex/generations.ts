@@ -5,13 +5,20 @@ import { v } from "convex/values";
 // Queries
 // ---------------------------------------------------------------------------
 
-/** Fetch all generations for the calling user, newest first. */
+/**
+ * Fetch all completed generations for the authenticated user, newest first.
+ * Returns an empty array for unauthenticated callers.
+ */
 export const listByUser = query({
-  args: { userId: v.string() },
-  handler: async (ctx, { userId }) => {
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
     return ctx.db
       .query("generations")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user", (q) =>
+        q.eq("userId", identity.tokenIdentifier)
+      )
       .order("desc")
       .collect();
   },
@@ -45,10 +52,12 @@ export const listInProgress = query({
 // Mutations
 // ---------------------------------------------------------------------------
 
-/** Create a new generation job (status starts as "pending"). */
+/**
+ * Create a new generation job (status starts as "pending").
+ * The userId is read from the verified JWT — never trusted from the client.
+ */
 export const create = mutation({
   args: {
-    userId: v.optional(v.string()),
     prompt: v.string(),
     negativePrompt: v.optional(v.string()),
     model: v.string(),
@@ -60,8 +69,10 @@ export const create = mutation({
     numImages: v.number(),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
     const id = await ctx.db.insert("generations", {
       ...args,
+      userId: identity?.tokenIdentifier,
       status: "pending",
       images: [],
     });
@@ -107,10 +118,19 @@ export const markFailed = mutation({
   },
 });
 
-/** Delete a generation document. */
+/** Delete a generation document (only the owner may delete it). */
 export const remove = mutation({
   args: { id: v.id("generations") },
   handler: async (ctx, { id }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    const generation = await ctx.db.get(id);
+    if (
+      generation?.userId &&
+      generation.userId !== identity?.tokenIdentifier
+    ) {
+      throw new Error("Unauthorized");
+    }
     await ctx.db.delete(id);
   },
 });
+
