@@ -29,6 +29,15 @@ export const AVAILABLE_MODELS: ImageModel[] = [
     supportedSizes: ["1024x1024"],
     supportedAspectRatios: ["1:1", "16:9", "9:16"],
   },
+  {
+    id: "fal-ai/nano-banana-2",
+    name: "Nano Banana 2",
+    provider: "fal",
+    description: "Second-gen Nano Banana – improved quality, still blazing fast.",
+    maxImages: 4,
+    supportedSizes: ["512x512", "1024x1024"],
+    supportedAspectRatios: ["1:1", "16:9", "9:16"],
+  },
 ];
 
 export const DEFAULT_MODEL = AVAILABLE_MODELS[0];
