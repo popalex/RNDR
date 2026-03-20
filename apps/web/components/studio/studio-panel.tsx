@@ -117,28 +117,38 @@ export function StudioPanel() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-bg-deep">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-zinc-800">
-        <h1 className="text-xl font-semibold">Studio</h1>
+      <div className="px-6 py-5 border-b border-border flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-2xl text-text-primary">Studio</h1>
+          <p className="text-sm text-text-muted mt-0.5">Create something extraordinary</p>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-text-muted">
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+          Ready
+        </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel – controls */}
-        <aside className="w-80 shrink-0 border-r border-zinc-800 flex flex-col gap-6 p-6 overflow-y-auto">
-          <ModelSelector
-            models={AVAILABLE_MODELS}
-            selectedId={selectedModelId}
-            onChange={setSelectedModelId}
-          />
-          <PromptForm
-            onSubmit={handleGenerate}
-            isLoading={isGenerating}
-          />
+        <aside className="w-80 shrink-0 border-r border-border flex flex-col bg-bg-base overflow-y-auto">
+          <div className="p-6 space-y-6 stagger-children">
+            <ModelSelector
+              models={AVAILABLE_MODELS}
+              selectedId={selectedModelId}
+              onChange={setSelectedModelId}
+            />
+            <div className="h-px bg-border" />
+            <PromptForm
+              onSubmit={handleGenerate}
+              isLoading={isGenerating}
+            />
+          </div>
         </aside>
 
         {/* Right panel – output */}
-        <div className="flex-1 p-6 overflow-y-auto">
+        <div className="flex-1 p-8 overflow-y-auto bg-bg-deep">
           <ImageGrid images={images} isLoading={isGenerating} />
         </div>
       </div>

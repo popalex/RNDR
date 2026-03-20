@@ -5,36 +5,36 @@ import { Show } from "@clerk/nextjs";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-100 overflow-hidden">
-      {/* Gradient background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-violet-950/30 via-zinc-950 to-fuchsia-950/20 pointer-events-none" />
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-violet-600/10 via-transparent to-transparent pointer-events-none" />
+    <main className="min-h-screen overflow-hidden relative">
+      {/* Noise overlay */}
+      <div className="noise-overlay" />
       
-      {/* Noise texture overlay */}
-      <div className="fixed inset-0 opacity-[0.015] pointer-events-none" style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-      }} />
+      {/* Ambient gradients */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-accent/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-rose/5 rounded-full blur-[100px]" />
+      </div>
 
       {/* Header */}
-      <header className="relative z-10 flex items-center justify-between px-8 py-6 max-w-7xl mx-auto">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">R</span>
+      <header className="relative z-10 flex items-center justify-between px-6 lg:px-12 py-6 max-w-7xl mx-auto">
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center transition-all duration-300 group-hover:bg-accent/20 group-hover:border-accent/40">
+            <span className="text-accent font-display text-xl">R</span>
           </div>
-          <span className="text-xl font-semibold tracking-tight">RNDR</span>
-        </div>
+          <span className="font-display text-2xl tracking-tight text-text-primary">RNDR</span>
+        </Link>
         
-        <nav className="flex items-center gap-6">
+        <nav className="flex items-center gap-4">
           <Show when="signed-out">
             <Link 
               href="/sign-in" 
-              className="text-sm text-zinc-400 hover:text-white transition-colors"
+              className="btn btn-ghost"
             >
               Sign in
             </Link>
             <Link 
               href="/sign-up" 
-              className="text-sm px-4 py-2 rounded-lg bg-white text-zinc-900 font-medium hover:bg-zinc-200 transition-colors"
+              className="btn btn-primary"
             >
               Get Started
             </Link>
@@ -42,89 +42,106 @@ export default function Home() {
           <Show when="signed-in">
             <Link 
               href="/studio" 
-              className="text-sm px-4 py-2 rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-medium hover:opacity-90 transition-opacity"
+              className="btn btn-primary"
             >
               Open Studio
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
             </Link>
           </Show>
         </nav>
       </header>
 
       {/* Hero */}
-      <section className="relative z-10 max-w-7xl mx-auto px-8 pt-24 pb-32">
-        <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-sm mb-8">
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
-            Powered by fal.ai
-          </div>
-          
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
-            Generate stunning images with{" "}
-            <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-violet-400 bg-clip-text text-transparent">
-              AI
-            </span>
-          </h1>
-          
-          <p className="text-xl text-zinc-400 max-w-xl mb-10 leading-relaxed">
-            Transform your ideas into beautiful visuals. RNDR gives you access to state-of-the-art 
-            image generation models in a clean, intuitive studio.
-          </p>
-          
-          <div className="flex flex-wrap gap-4">
-            <Show when="signed-out">
-              <Link 
-                href="/sign-up" 
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-violet-500/25"
-              >
-                Start Creating
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
+      <section className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12 pt-16 sm:pt-24 lg:pt-32 pb-20">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="stagger-children">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-bg-surface border border-border-strong mb-8">
+              <span className="w-2 h-2 rounded-full bg-accent animate-pulse-glow" />
+              <span className="text-sm text-text-secondary">Powered by fal.ai</span>
+            </div>
+            
+            <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl leading-[1.05] mb-6 text-balance">
+              Render your
+              <br />
+              <span className="gradient-text">imagination</span>
+            </h1>
+            
+            <p className="text-lg sm:text-xl text-text-secondary max-w-lg mb-10 leading-relaxed">
+              Transform words into stunning visuals. Access state-of-the-art 
+              AI models through a refined, intuitive studio.
+            </p>
+            
+            <div className="flex flex-wrap gap-4">
+              <Show when="signed-out">
+                <Link href="/sign-up" className="btn btn-primary text-base px-8 py-3.5">
+                  Start Creating
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </Link>
+              </Show>
+              <Show when="signed-in">
+                <Link href="/studio" className="btn btn-primary text-base px-8 py-3.5">
+                  Open Studio
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </Link>
+              </Show>
+              <Link href="#features" className="btn btn-secondary text-base px-8 py-3.5">
+                Learn More
               </Link>
-            </Show>
-            <Show when="signed-in">
-              <Link 
-                href="/studio" 
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-violet-500/25"
-              >
-                Open Studio
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-              </Link>
-            </Show>
-            <Link 
-              href="#features" 
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-zinc-700 text-zinc-300 font-medium hover:bg-zinc-800/50 transition-colors"
-            >
-              Learn More
-            </Link>
+            </div>
           </div>
-        </div>
 
-        {/* Hero image placeholder */}
-        <div className="absolute top-20 right-0 w-[500px] h-[400px] rounded-2xl bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 border border-zinc-800 backdrop-blur-sm hidden lg:flex items-center justify-center overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-violet-600/5 to-fuchsia-600/5" />
-          <div className="text-zinc-600 text-sm">Generated images appear here</div>
-          {/* Grid pattern */}
-          <div className="absolute inset-0 opacity-5" style={{
-            backgroundImage: 'linear-gradient(to right, rgb(255 255 255) 1px, transparent 1px), linear-gradient(to bottom, rgb(255 255 255) 1px, transparent 1px)',
-            backgroundSize: '40px 40px',
-          }} />
+          {/* Hero visual */}
+          <div className="relative hidden lg:block">
+            <div className="relative aspect-[4/3] rounded-2xl bg-bg-elevated border border-border overflow-hidden">
+              {/* Grid pattern */}
+              <div className="absolute inset-0 opacity-[0.03]" style={{
+                backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)',
+                backgroundSize: '48px 48px',
+              }} />
+              
+              {/* Floating elements */}
+              <div className="absolute inset-8 flex flex-col items-center justify-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                  <svg className="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <p className="text-text-muted text-sm">Your creations will appear here</p>
+              </div>
+
+              {/* Corner accents */}
+              <div className="absolute top-0 left-0 w-20 h-20 border-l-2 border-t-2 border-accent/30 rounded-tl-2xl" />
+              <div className="absolute bottom-0 right-0 w-20 h-20 border-r-2 border-b-2 border-accent/30 rounded-br-2xl" />
+            </div>
+            
+            {/* Glow effect */}
+            <div className="absolute -inset-4 bg-accent/5 rounded-3xl blur-2xl -z-10" />
+          </div>
         </div>
       </section>
 
       {/* Features */}
-      <section id="features" className="relative z-10 max-w-7xl mx-auto px-8 py-24">
-        <h2 className="text-3xl font-bold mb-16 text-center">
-          Everything you need to create
-        </h2>
+      <section id="features" className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12 py-24 border-t border-border">
+        <div className="text-center mb-16">
+          <h2 className="font-display text-4xl sm:text-5xl mb-4">
+            Built for creators
+          </h2>
+          <p className="text-text-secondary text-lg max-w-xl mx-auto">
+            Everything you need to bring ideas to life, nothing you don&apos;t.
+          </p>
+        </div>
         
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-6 stagger-children">
           {[
             {
               title: "Multiple Models",
-              description: "Access FLUX, Stable Diffusion, and more state-of-the-art models from a single interface.",
+              description: "FLUX, Stable Diffusion, and more. One interface, every possibility.",
               icon: (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
@@ -132,8 +149,8 @@ export default function Home() {
               ),
             },
             {
-              title: "Your Gallery",
-              description: "All your generations are saved automatically. Browse, search, and download anytime.",
+              title: "Personal Gallery",
+              description: "Every generation saved automatically. Browse and download anytime.",
               icon: (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -141,62 +158,71 @@ export default function Home() {
               ),
             },
             {
-              title: "Fast Generation",
-              description: "Powered by fal.ai's optimized infrastructure for lightning-fast image creation.",
+              title: "Lightning Fast",
+              description: "Optimized infrastructure. Ideas to images in seconds, not minutes.",
               icon: (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               ),
             },
-          ].map((feature) => (
+          ].map((feature, i) => (
             <div 
-              key={feature.title}
-              className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors group"
+              key={feature.title} 
+              className="card card-hover p-8 group"
+              style={{ animationDelay: `${i * 0.1}s` }}
             >
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-600/20 to-fuchsia-600/20 flex items-center justify-center text-violet-400 mb-4 group-hover:scale-110 transition-transform">
+              <div className="w-12 h-12 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-6 text-accent transition-colors group-hover:bg-accent/20">
                 {feature.icon}
               </div>
-              <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-              <p className="text-zinc-400 text-sm leading-relaxed">{feature.description}</p>
+              <h3 className="text-xl font-semibold mb-3 text-text-primary">{feature.title}</h3>
+              <p className="text-text-secondary leading-relaxed">{feature.description}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* CTA */}
-      <section className="relative z-10 max-w-7xl mx-auto px-8 py-24">
-        <div className="rounded-3xl bg-gradient-to-br from-violet-600/10 to-fuchsia-600/10 border border-violet-500/20 p-12 text-center">
-          <h2 className="text-3xl font-bold mb-4">Ready to create?</h2>
-          <p className="text-zinc-400 mb-8 max-w-md mx-auto">
-            Sign up for free and start generating beautiful images in seconds.
-          </p>
-          <Show when="signed-out">
-            <Link 
-              href="/sign-up" 
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-white text-zinc-900 font-semibold hover:bg-zinc-200 transition-colors"
-            >
-              Get Started — It's Free
-            </Link>
-          </Show>
-          <Show when="signed-in">
-            <Link 
-              href="/studio" 
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-white text-zinc-900 font-semibold hover:bg-zinc-200 transition-colors"
-            >
-              Go to Studio
-            </Link>
-          </Show>
+      <section className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12 py-24">
+        <div className="relative rounded-3xl bg-bg-elevated border border-border overflow-hidden p-12 sm:p-16 text-center">
+          {/* Background pattern */}
+          <div className="absolute inset-0 opacity-[0.02]" style={{
+            backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)',
+            backgroundSize: '32px 32px',
+          }} />
+          
+          <div className="relative">
+            <h2 className="font-display text-4xl sm:text-5xl mb-4">
+              Ready to create?
+            </h2>
+            <p className="text-text-secondary text-lg max-w-md mx-auto mb-10">
+              Join creators who are already rendering their imagination.
+            </p>
+            <Show when="signed-out">
+              <Link href="/sign-up" className="btn btn-primary text-base px-10 py-4">
+                Start for Free
+              </Link>
+            </Show>
+            <Show when="signed-in">
+              <Link href="/studio" className="btn btn-primary text-base px-10 py-4">
+                Open Studio
+              </Link>
+            </Show>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-zinc-800 py-8 px-8">
-        <div className="max-w-7xl mx-auto flex items-center justify-between text-sm text-zinc-500">
-          <span>© 2026 RNDR. All rights reserved.</span>
-          <div className="flex items-center gap-6">
-            <a href="https://github.com" className="hover:text-zinc-300 transition-colors">GitHub</a>
+      <footer className="relative z-10 border-t border-border py-8 px-6 lg:px-12">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-2 text-text-muted text-sm">
+            <span className="font-display text-lg text-text-secondary">RNDR</span>
+            <span>·</span>
+            <span>Built with fal.ai</span>
           </div>
+          <p className="text-text-muted text-sm">
+            © {new Date().getFullYear()} All rights reserved.
+          </p>
         </div>
       </footer>
     </main>

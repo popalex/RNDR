@@ -2,6 +2,7 @@
 
 import type { ImageModel } from "@rndr/types";
 import { cn } from "@/lib/utils";
+import { ChevronDown, Cpu } from "lucide-react";
 
 interface ModelSelectorProps {
   models: ImageModel[];
@@ -17,25 +18,38 @@ export function ModelSelector({
   const selected = models.find((m) => m.id === selectedId) ?? models[0];
 
   return (
-    <div className="flex flex-col gap-2">
-      <label className="text-sm font-medium text-zinc-300">Model</label>
-      <select
-        value={selectedId}
-        onChange={(e) => onChange(e.target.value)}
-        className={cn(
-          "w-full rounded-lg bg-zinc-900 border border-zinc-700 text-sm text-white",
-          "px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-600",
-          "focus:border-transparent transition"
-        )}
-      >
-        {models.map((model) => (
-          <option key={model.id} value={model.id}>
-            {model.name} ({model.provider})
-          </option>
-        ))}
-      </select>
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <Cpu className="w-4 h-4 text-accent" />
+        <label className="label mb-0">Model</label>
+      </div>
+      
+      <div className="relative">
+        <select
+          value={selectedId}
+          onChange={(e) => onChange(e.target.value)}
+          className={cn(
+            "input appearance-none cursor-pointer pr-10",
+            "hover:border-text-muted"
+          )}
+        >
+          {models.map((model) => (
+            <option key={model.id} value={model.id}>
+              {model.name}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+      </div>
+      
       {selected && (
-        <p className="text-xs text-zinc-500">{selected.description}</p>
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-bg-surface border border-border">
+          <div className="w-1 h-full bg-accent/50 rounded-full shrink-0 self-stretch" />
+          <div>
+            <p className="text-xs text-text-secondary leading-relaxed">{selected.description}</p>
+            <p className="text-xs text-text-muted mt-1">via {selected.provider}</p>
+          </div>
+        </div>
       )}
     </div>
   );

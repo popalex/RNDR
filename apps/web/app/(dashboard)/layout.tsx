@@ -28,9 +28,12 @@ export default function DashboardLayout({
   }, [isLoaded, user, upsertUser]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden bg-bg-deep">
+      {/* Noise overlay */}
+      <div className="noise-overlay" />
+      
       <Sidebar />
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      <main className="flex-1 overflow-y-auto relative">{children}</main>
     </div>
   );
 }
