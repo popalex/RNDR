@@ -6,37 +6,57 @@
 
 ## Architecture Overview
 
+RNDR supports **two interchangeable generation back-ends**. Pick the one that fits your deployment:
+
+### Option A — Convex Action *(recommended, default)*
+
+The browser calls a Convex Action directly. No Docker container, no extra service to host.
+
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Browser                              │
-│  Next.js 15 (App Router)  ·  React 19  ·  Tailwind CSS     │
-│  • /studio  – prompt UI, model selector, live preview       │
-│  • /gallery – masonry grid of past generations              │
-│  • /settings – user preferences                             │
-└────────────────────┬────────────────────────────────────────┘
-                     │ HTTP (fetch)
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│          Next.js API Route  /api/generate                   │
-│  • Keeps AI_SERVICE_SECRET out of the browser bundle        │
-│  • Forwards request to the AI service                       │
-└────────────────────┬────────────────────────────────────────┘
-          ┌──────────┴──────────┐
-          │                     │
-          ▼                     ▼
-┌──────────────────┐   ┌────────────────────────────────────┐
-│  Convex Backend  │   │  AI Service  (Docker)              │
-│  (real-time DB)  │   │  Hono + Vercel AI SDK              │
-│                  │   │  ┌──────────────────────────────┐  │
-│  • generations   │   │  │  Provider Registry           │  │
-│  • users         │   │  │  ┌──────────┐ ┌───────────┐  │  │
-│                  │   │  │  │  fal.ai  │ │ (future)  │  │  │
-│  Subscriptions   │   │  │  └──────────┘ └───────────┘  │  │
-│  push updates to │   │  └──────────────────────────────┘  │
-│  all connected   │   └────────────────────────────────────┘
-│  clients         │
-└──────────────────┘
+Browser (React)
+    │  useAction(api.generate.generateImages)
+    ▼
+Convex Action  (convex/generate.ts)
+    │  • FAL_KEY stored in Convex env vars — never in browser
+    │  • Manages generation row lifecycle automatically
+    │  • callFal() → fetch https://fal.run/{model}
+    ▼
+fal.ai API  →  images returned  →  persisted in Convex DB  →  back to Browser
 ```
+
+### Option B — Docker ai-service
+
+A standalone Hono microservice wraps the Vercel AI SDK. Useful when you need
+Node.js-specific provider SDKs, custom scaling, or want to decouple the AI
+layer from Convex entirely.
+
+```
+Browser (React)
+    │  fetch POST /api/generate
+    ▼
+Next.js API Route  (apps/web/app/api/generate/route.ts)
+    │  • Adds x-service-secret header
+    │  • Forwards to ai-service
+    ▼
+ai-service Docker  (apps/ai-service)
+    │  Hono + Vercel AI SDK
+    │  Provider Registry → FalProvider → fal.ai API
+    ▼
+images returned  →  Next.js route  →  Browser
+(Browser then calls markCompleted / markFailed manually)
+```
+
+### Comparison
+
+| | **Convex Action** (A) | **Docker ai-service** (B) |
+|---|---|---|
+| Infrastructure | Zero — serverless | Must host a Docker container |
+| `FAL_KEY` location | Convex env vars | Docker / host env |
+| Extra auth secret | Not needed | `AI_SERVICE_SECRET` required |
+| DB lifecycle | Automatic inside action | Manual mutations in browser |
+| Timeout | 10 min (Node.js runtime) | Unlimited (your container) |
+| Adding providers | Extend `convex/generate.ts` | New file in `providers/` + registry |
+| Best for | Most projects | Custom scaling / non-fal providers |
 
 ### Key Design Decisions
 
@@ -45,10 +65,78 @@
 | **Monorepo (Turborepo)** | Shared types, co-located tooling, single `pnpm install` |
 | **Clerk** | Production-ready auth with social logins, MFA, user management UI out of the box |
 | **Convex** | Real-time subscriptions, no REST boilerplate, built-in Clerk JWT verification |
-| **Separate AI service (Docker)** | Isolate heavy AI deps; swap/add providers without touching the web app |
-| **Provider abstraction** | Adding a new model provider = one new file + one import |
+| **Convex Action for generation** | Serverless, zero-ops, FAL_KEY never leaves Convex |
+| **Docker ai-service (optional)** | Isolate heavy AI deps; use when you need Node.js-specific SDKs or custom scaling |
+| **Provider abstraction** | Adding a new model provider = one new file + one import (either back-end) |
 | **Vercel AI SDK** | Unified API across providers, built-in streaming support |
-| **Next.js API proxy** | Keeps `AI_SERVICE_SECRET` and `FAL_KEY` server-side only |
+
+---
+
+## The ai-service — explained
+
+`apps/ai-service` is a standalone HTTP microservice (TypeScript + [Hono](https://hono.dev/))
+packaged as a Docker image. It is **Option B** — the ai-service is not required
+when using the Convex Action path.
+
+### File structure
+
+```
+apps/ai-service/src/
+├── index.ts          ← HTTP server entrypoint (port 3001)
+├── app.ts            ← Hono app: logger + secret middleware + routes
+├── middleware/
+│   └── secret.ts     ← Shared-secret auth guard (x-service-secret header)
+├── providers/
+│   ├── types.ts      ← Provider interface contract
+│   ├── fal.ts        ← fal.ai implementation via Vercel AI SDK
+│   ├── registry.ts   ← Central Map<ImageProvider, Provider>
+│   └── index.ts      ← Re-exports
+└── routes/
+    ├── generate.ts   ← POST /generate  — validate → provider.generate() → JSON
+    └── models.ts     ← GET  /models   — list registered providers
+```
+
+### Endpoints
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET` | `/health` | None | Health check used by Docker / load balancer |
+| `POST` | `/generate` | `x-service-secret` | Generate images; body is `GenerationRequest` |
+| `GET` | `/models` | `x-service-secret` | List registered providers |
+
+### How the middleware works
+
+`middleware/secret.ts` reads `AI_SERVICE_SECRET` at startup. On every guarded
+request it checks the `x-service-secret` header. If the env var is unset, the
+guard is skipped (handy for local dev). This keeps the service private — only
+the Next.js server (which knows the secret) can call it.
+
+### How the provider registry works
+
+`providers/registry.ts` holds a `Map<ImageProvider, Provider>`. At startup it
+is built from an array of provider instances (`[new FalProvider()]`). To add a
+new AI provider:
+
+1. Create `apps/ai-service/src/providers/<name>.ts` implementing `Provider`.
+2. Add an instance to the `providers` array in `registry.ts`.
+3. Add the provider name to `ImageProvider` in `packages/types/src/index.ts`.
+4. Add model entries to `apps/web/lib/models.ts`.
+
+### Convex Action — explained
+
+`convex/generate.ts` is the serverless equivalent. It:
+
+1. Receives generation args from the browser via `useAction()`.
+2. Inserts a `generations` row (`status: "pending"`) — userId comes from the
+   verified Clerk JWT, never from client input.
+3. Flips the row to `"processing"`.
+4. POSTs to `https://fal.run/{model}` with `Authorization: Key {FAL_KEY}`.
+   `FAL_KEY` is read from `process.env` which Convex maps to its own secure
+   environment variable store.
+5. On success: patches the row to `"completed"` with the returned images and
+   returns `{ generationId, images, durationMs }` to the browser.
+6. On failure: patches the row to `"failed"` with the error message and
+   re-throws so the browser can display a toast.
 
 ---
 
@@ -93,6 +181,7 @@ rndr/
 ├── convex/                       # Convex backend (serverless functions)
 │   ├── schema.ts                 # Database schema
 │   ├── generations.ts            # Generation CRUD + queries
+│   ├── generate.ts               # Convex Action – calls fal.ai (Option A)
 │   └── users.ts                  # User profile upsert
 │
 ├── packages/
@@ -132,9 +221,10 @@ cp .env.example .env.local
 #   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 #   CLERK_SECRET_KEY
 #   NEXT_PUBLIC_CONVEX_URL  (get this after step 3)
-#   FAL_KEY
-#   AI_SERVICE_SECRET
 ```
+
+> `FAL_KEY` should **not** go in `.env.local` when using the Convex Action path.
+> Set it directly in Convex (see step 4) so it stays server-side.
 
 ### 3. Set up Convex + Clerk JWT
 
@@ -153,20 +243,14 @@ pnpm dlx convex env set CLERK_JWT_ISSUER_DOMAIN https://<your-subdomain>.clerk.a
 > *Configure → JWT Templates → New template → Convex* and save it.  
 > This makes Clerk embed the subject claim Convex expects.
 
-### 4. Run the AI service
-
-**Option A – Node.js (fastest for dev)**
+### 4. Set fal.ai key in Convex
 
 ```bash
-cd apps/ai-service
-FAL_KEY=<your-key> pnpm dev
+pnpm dlx convex env set FAL_KEY your_fal_api_key_here
 ```
 
-**Option B – Docker**
-
-```bash
-docker compose up ai-service
-```
+This stores the key securely in Convex — it is never sent to the browser or
+bundled with the Next.js app.
 
 ### 5. Run the web app
 
@@ -181,9 +265,40 @@ Or from the workspace root:
 pnpm dev             # starts all apps via Turborepo
 ```
 
+That's it — no Docker container required for generation.
+
+### (Optional) Run the Docker ai-service instead
+
+If you prefer Option B (the standalone Docker microservice), also set:
+
+```bash
+# in .env.local
+AI_SERVICE_URL=http://localhost:3001
+AI_SERVICE_SECRET=change_me_in_production
+FAL_KEY=your_fal_api_key_here   # needed by the container too
+```
+
+Then start the container:
+
+```bash
+docker compose up ai-service
+```
+
+And update `apps/web/components/studio/studio-panel.tsx` to use the original
+`useMutation` + `fetch("/api/generate")` pattern (see git history for the
+previous version).
+
 ---
 
 ## Adding a New AI Provider
+
+### Via Convex Action (Option A)
+
+1. Add the provider name to `ImageProvider` in `packages/types/src/index.ts`.
+2. Add the call logic to `convex/generate.ts` (add a new `if (args.provider === "<name>")` branch or a helper function).
+3. Add model entries to `apps/web/lib/models.ts`.
+
+### Via Docker ai-service (Option B)
 
 1. Create `apps/ai-service/src/providers/<name>.ts`  
    Implement the `Provider` interface from `./types`.
@@ -198,7 +313,7 @@ pnpm dev             # starts all apps via Turborepo
 
 4. Add model entries to `apps/web/lib/models.ts`.
 
-That's it – no other files need to change.
+No other files need to change in either case.
 
 ---
 
@@ -207,8 +322,8 @@ That's it – no other files need to change.
 | Service | Recommended platform |
 |---|---|
 | **Web app** | Vercel (zero-config Next.js) |
-| **Convex backend** | Convex Cloud (`npx convex deploy`) |
-| **AI service** | Any Docker host: Railway, Fly.io, Cloud Run, ECS |
+| **Convex backend + Action** | Convex Cloud (`pnpm convex:deploy`) |
+| **AI service** *(Option B only)* | Any Docker host: Railway, Fly.io, Cloud Run, ECS |
 
 ---
 
