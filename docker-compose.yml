@@ -1,0 +1,54 @@
+version: "3.9"
+
+# ============================================================
+# RNDR – Docker Compose for local development
+# ============================================================
+
+services:
+  # --------------------------------------------------------
+  # AI microservice (image generation)
+  # --------------------------------------------------------
+  ai-service:
+    build:
+      context: .
+      dockerfile: apps/ai-service/Dockerfile
+    image: rndr-ai-service:latest
+    container_name: rndr-ai-service
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: "3001"
+      # Shared secret – must match AI_SERVICE_SECRET in .env.local
+      AI_SERVICE_SECRET: "${AI_SERVICE_SECRET}"
+      # fal.ai API key
+      FAL_KEY: "${FAL_KEY}"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # --------------------------------------------------------
+  # Next.js web app (optional – can run with `npm run dev`)
+  # --------------------------------------------------------
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: rndr-web:latest
+    container_name: rndr-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_CONVEX_URL: "${NEXT_PUBLIC_CONVEX_URL}"
+      AI_SERVICE_URL: "http://ai-service:3001"
+      AI_SERVICE_SECRET: "${AI_SERVICE_SECRET}"
+    depends_on:
+      ai-service:
+        condition: service_healthy
+    profiles:
+      # Only start the web container when explicitly requested:
+      # docker compose --profile full up
+      - full

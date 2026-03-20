@@ -137,3 +137,13 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Turborepo
+.turbo
+
+# Convex generated files (auto-generated, do not commit)
+convex/_generated/
+
+# Build artifacts
+apps/ai-service/dist/
+
