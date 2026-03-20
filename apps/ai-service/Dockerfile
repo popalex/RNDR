@@ -6,15 +6,19 @@
 # ---- Stage 1: Build ----------------------------------------
 FROM node:20-alpine AS builder
 
+# Enable pnpm via corepack (ships with Node.js ≥ 16.9)
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
+
 WORKDIR /app
 
-# Copy workspace manifests (needed so the workspace protocol resolves)
+# Copy workspace manifest and lock file first to leverage layer cache
+COPY pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY package.json turbo.json ./
 COPY packages/types/package.json ./packages/types/package.json
 COPY apps/ai-service/package.json ./apps/ai-service/package.json
 
 # Install all workspace deps
-RUN npm install --workspaces --include-workspace-root
+RUN pnpm install --frozen-lockfile
 
 # Copy source
 COPY packages/types ./packages/types
@@ -22,20 +26,23 @@ COPY apps/ai-service ./apps/ai-service
 
 # Build TypeScript
 WORKDIR /app/apps/ai-service
-RUN npm run build
+RUN pnpm run build
 
 # ---- Stage 2: Production -----------------------------------
 FROM node:20-alpine AS runner
+
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Copy workspace manifests & install PRODUCTION deps only
+# Copy workspace manifests & lock file, then install production deps only
+COPY pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY package.json turbo.json ./
 COPY packages/types/package.json ./packages/types/package.json
 COPY apps/ai-service/package.json ./apps/ai-service/package.json
-RUN npm install --workspaces --include-workspace-root --omit=dev
+RUN pnpm install --frozen-lockfile --prod
 
 # Copy compiled output
 COPY --from=builder /app/apps/ai-service/dist ./apps/ai-service/dist

@@ -10,7 +10,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@rndr/types": "*",
+    "@rndr/types": "workspace:*",
     "@clerk/nextjs": "^6.9.3",
     "convex": "^1.17.4",
     "next": "^15.1.3",

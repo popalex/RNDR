@@ -30,7 +30,7 @@ services:
       retries: 3
 
   # --------------------------------------------------------
-  # Next.js web app (optional – can run with `npm run dev`)
+  # Next.js web app (optional – can run with `pnpm dev`)
   # --------------------------------------------------------
   web:
     build:

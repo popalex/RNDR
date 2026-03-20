@@ -42,7 +42,7 @@
 
 | Decision | Rationale |
 |---|---|
-| **Monorepo (Turborepo)** | Shared types, co-located tooling, single `npm install` |
+| **Monorepo (Turborepo)** | Shared types, co-located tooling, single `pnpm install` |
 | **Clerk** | Production-ready auth with social logins, MFA, user management UI out of the box |
 | **Convex** | Real-time subscriptions, no REST boilerplate, built-in Clerk JWT verification |
 | **Separate AI service (Docker)** | Isolate heavy AI deps; swap/add providers without touching the web app |
@@ -112,7 +112,7 @@ rndr/
 ### Prerequisites
 
 - Node.js ≥ 20
-- npm ≥ 10
+- pnpm 9 (LTS) — install via `corepack enable` or `npm i -g pnpm@9`
 - [Convex account](https://dashboard.convex.dev)
 - [Clerk account](https://clerk.com) — create an application and grab the API keys
 - [fal.ai API key](https://fal.ai/dashboard/keys)
@@ -121,7 +121,7 @@ rndr/
 ### 1. Install dependencies
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 2. Configure environment variables
@@ -139,14 +139,14 @@ cp .env.example .env.local
 ### 3. Set up Convex + Clerk JWT
 
 ```bash
-npx convex dev   # creates the project, generates types, starts the dev server
+pnpm convex:dev   # creates the project, generates types, starts the dev server
 ```
 
 In a second terminal, set the Clerk JWT issuer so Convex can verify tokens:
 
 ```bash
 # Replace with your actual Clerk Frontend API URL (found in Clerk dashboard)
-npx convex env set CLERK_JWT_ISSUER_DOMAIN https://<your-subdomain>.clerk.accounts.dev
+pnpm dlx convex env set CLERK_JWT_ISSUER_DOMAIN https://<your-subdomain>.clerk.accounts.dev
 ```
 
 > **Clerk JWT Template** – in the Clerk dashboard go to  
@@ -159,7 +159,7 @@ npx convex env set CLERK_JWT_ISSUER_DOMAIN https://<your-subdomain>.clerk.accoun
 
 ```bash
 cd apps/ai-service
-FAL_KEY=<your-key> npm run dev
+FAL_KEY=<your-key> pnpm dev
 ```
 
 **Option B – Docker**
@@ -172,13 +172,13 @@ docker compose up ai-service
 
 ```bash
 cd apps/web
-npm run dev             # http://localhost:3000
+pnpm dev             # http://localhost:3000
 ```
 
 Or from the workspace root:
 
 ```bash
-npm run dev             # starts all apps via Turborepo
+pnpm dev             # starts all apps via Turborepo
 ```
 
 ---
