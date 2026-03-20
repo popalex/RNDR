@@ -8,7 +8,7 @@
 
 RNDR supports **two interchangeable generation back-ends**. Pick the one that fits your deployment:
 
-### Option A — Convex Action *(recommended, default)*
+### Option A — Convex Action *(default: `NEXT_PUBLIC_GENERATION_BACKEND=convex`)*
 
 The browser calls a Convex Action directly. No Docker container, no extra service to host.
 
@@ -24,7 +24,7 @@ Convex Action  (convex/generate.ts)
 fal.ai API  →  images returned  →  persisted in Convex DB  →  back to Browser
 ```
 
-### Option B — Docker ai-service
+### Option B — Docker ai-service *(`NEXT_PUBLIC_GENERATION_BACKEND=ai-service`)*
 
 A standalone Hono microservice wraps the Vercel AI SDK. Useful when you need
 Node.js-specific provider SDKs, custom scaling, or want to decouple the AI
@@ -269,13 +269,53 @@ That's it — no Docker container required for generation.
 
 ### (Optional) Run the Docker ai-service instead
 
-If you prefer Option B (the standalone Docker microservice), also set:
+To use Option B, set `NEXT_PUBLIC_GENERATION_BACKEND=ai-service` in
+`.env.local` (see [Switching Backends](#switching-backends) below) and start
+the container:
 
 ```bash
-# in .env.local
+docker compose up ai-service
+```
+
+Make sure `AI_SERVICE_URL`, `AI_SERVICE_SECRET`, and `FAL_KEY` are also set in
+`.env.local` (they are only read by the container and the Next.js proxy route).
+
+---
+
+## Switching Backends
+
+The generation backend is controlled by a **single environment variable** in
+your `.env.local`:
+
+```
+NEXT_PUBLIC_GENERATION_BACKEND=convex       # default
+NEXT_PUBLIC_GENERATION_BACKEND=ai-service   # Docker container
+```
+
+No code changes are needed. Restart the Next.js dev server after changing the
+value (Next.js bakes `NEXT_PUBLIC_*` variables into the bundle at startup).
+
+### Option A — `convex` (default)
+
+```
+# .env.local
+NEXT_PUBLIC_GENERATION_BACKEND=convex
+NEXT_PUBLIC_CONVEX_URL=https://<your-deployment>.convex.cloud
+# FAL_KEY → set in Convex, NOT here:
+#   pnpm dlx convex env set FAL_KEY <your-key>
+```
+
+Everything else is handled by the Convex Action (`convex/generate.ts`).  
+No Docker container, no `AI_SERVICE_SECRET`.
+
+### Option B — `ai-service`
+
+```
+# .env.local
+NEXT_PUBLIC_GENERATION_BACKEND=ai-service
 AI_SERVICE_URL=http://localhost:3001
 AI_SERVICE_SECRET=change_me_in_production
-FAL_KEY=your_fal_api_key_here   # needed by the container too
+FAL_KEY=your_fal_api_key_here   # read by docker-compose
 ```
 
 Then start the container:
@@ -284,9 +324,17 @@ Then start the container:
 docker compose up ai-service
 ```
 
-And update `apps/web/components/studio/studio-panel.tsx` to use the original
-`useMutation` + `fetch("/api/generate")` pattern (see git history for the
-previous version).
+### Full comparison
+
+| | `convex` (A) | `ai-service` (B) |
+|---|---|---|
+| **Start command** | `pnpm convex:dev` | `docker compose up ai-service` |
+| **`FAL_KEY` location** | `convex env set` | `.env.local` / Docker env |
+| **`AI_SERVICE_SECRET`** | Not needed | Required |
+| **Infrastructure** | Zero — serverless | Docker container |
+| **DB lifecycle** | Managed inside action | Manual mutations in browser |
+| **Timeout** | ~10 min (Convex Node.js runtime) | Unlimited |
+| **Best for** | Most projects | Custom scaling / non-fal providers |
 
 ---
 
